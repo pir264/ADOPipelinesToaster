@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ADOPipelinesToaster.Models;
 
@@ -13,4 +14,5 @@ public class PipelineRun
     public DateTime? FinishTime { get; set; }
     public List<PipelineStage> Stages { get; set; } = new();
     public string? WebUrl { get; set; }
+    public bool AllStagesCompleted => Stages.Count > 0 && Stages.All(s => s.Status == "completed");
 }
