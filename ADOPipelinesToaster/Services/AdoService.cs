@@ -1,0 +1,95 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Threading;
+using System.Threading.Tasks;
+using ADOPipelinesToaster.Models;
+
+namespace ADOPipelinesToaster.Services;
+
+public class AdoService
+{
+    private readonly HttpClient _http;
+    private readonly AppSettings _settings;
+
+    public AdoService(AppSettings settings)
+    {
+        _settings = settings;
+        _http = new HttpClient();
+
+        var encoded = Convert.ToBase64String(Encoding.ASCII.GetBytes(":" + settings.PatToken));
+        _http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Basic", encoded);
+    }
+
+    private string BaseUrl => $"{_settings.OrganizationUrl.TrimEnd('/')}/{_settings.ProjectName}/_apis";
+
+    public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
+    {
+        var url = $"{BaseUrl}/build/builds?$top=10&api-version=7.1";
+        var response = await _http.GetAsync(url, ct);
+        response.EnsureSuccessStatusCode();
+
+        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        var builds = json?["value"]?.AsArray() ?? new JsonArray();
+
+        var runs = new List<PipelineRun>();
+        foreach (var build in builds.Take(2))
+        {
+            if (build == null) continue;
+            var run = new PipelineRun
+            {
+                Id = build["id"]?.GetValue<int>() ?? 0,
+                Name = build["buildNumber"]?.GetValue<string>() ?? "Unknown",
+                Status = build["status"]?.GetValue<string>() ?? string.Empty,
+                Result = build["result"]?.GetValue<string>() ?? string.Empty,
+                StartTime = ParseDate(build["startTime"]),
+                FinishTime = ParseDate(build["finishTime"]),
+            };
+
+            // Annotate name with pipeline definition name
+            var definitionName = build["definition"]?["name"]?.GetValue<string>();
+            if (!string.IsNullOrEmpty(definitionName))
+                run.Name = $"{definitionName} #{run.Name}";
+
+            run.Stages = await GetStagesAsync(run.Id, ct);
+            runs.Add(run);
+        }
+
+        return runs;
+    }
+
+    public async Task<List<PipelineStage>> GetStagesAsync(int buildId, CancellationToken ct)
+    {
+        var url = $"{BaseUrl}/build/builds/{buildId}/timeline?api-version=7.1";
+        var response = await _http.GetAsync(url, ct);
+
+        if (!response.IsSuccessStatusCode)
+            return new List<PipelineStage>();
+
+        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        var records = json?["records"]?.AsArray() ?? new JsonArray();
+
+        return records
+            .Where(r => r?["type"]?.GetValue<string>() == "Stage")
+            .OrderBy(r => r?["order"]?.GetValue<int>() ?? 0)
+            .Select(r => new PipelineStage
+            {
+                Name = r?["name"]?.GetValue<string>() ?? "Unknown",
+                Status = r?["state"]?.GetValue<string>() ?? string.Empty,
+                Result = r?["result"]?.GetValue<string>() ?? string.Empty,
+            })
+            .ToList();
+    }
+
+    private static DateTime? ParseDate(JsonNode? node)
+    {
+        var s = node?.GetValue<string>();
+        return string.IsNullOrEmpty(s) ? null : DateTime.Parse(s);
+    }
+}

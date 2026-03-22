@@ -1,0 +1,62 @@
+<Window x:Class="ADOPipelinesToaster.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ADO Pipelines Toaster — Settings"
+        Width="440" SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStyle="SingleBorderWindow"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="True">
+
+    <Border Background="#1E1E1E" Padding="16">
+        <StackPanel>
+            <TextBlock Text="Settings" Foreground="#EEEEEE" FontSize="14"
+                       FontWeight="SemiBold" Margin="0,0,0,14"/>
+
+            <!-- Organization URL -->
+            <TextBlock Text="Organization URL" Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,3"/>
+            <TextBox x:Name="TxtOrgUrl" Margin="0,0,0,10" Padding="6,4"
+                     Background="#2D2D2D" Foreground="#EEEEEE"
+                     BorderBrush="#555" CaretBrush="White"
+                     ToolTip="e.g. https://dev.azure.com/myorg"/>
+
+            <!-- Project Name -->
+            <TextBlock Text="Project Name" Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,3"/>
+            <TextBox x:Name="TxtProject" Margin="0,0,0,10" Padding="6,4"
+                     Background="#2D2D2D" Foreground="#EEEEEE"
+                     BorderBrush="#555" CaretBrush="White"/>
+
+            <!-- PAT Token -->
+            <TextBlock Text="Personal Access Token" Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,3"/>
+            <PasswordBox x:Name="TxtPat" Margin="0,0,0,10" Padding="6,4"
+                         Background="#2D2D2D" Foreground="#EEEEEE"
+                         BorderBrush="#555"/>
+
+            <!-- Poll Interval -->
+            <TextBlock Text="Poll Interval (seconds)" Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,3"/>
+            <TextBox x:Name="TxtPollInterval" Margin="0,0,0,10" Padding="6,4"
+                     Background="#2D2D2D" Foreground="#EEEEEE"
+                     BorderBrush="#555" CaretBrush="White"/>
+
+            <!-- Auto-start -->
+            <CheckBox x:Name="ChkAutoStart" Content="Start automatically with Windows"
+                      Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,16"/>
+
+            <!-- Error message -->
+            <TextBlock x:Name="TxtError" Foreground="#E57373" FontSize="11"
+                       TextWrapping="Wrap" Margin="0,0,0,8" Visibility="Collapsed"/>
+
+            <!-- Buttons -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" Width="80" Margin="0,0,8,0"
+                        Click="OnCancelClick"
+                        Background="#3C3C3C" Foreground="#EEEEEE" BorderBrush="#555"
+                        Padding="0,5"/>
+                <Button Content="Save" Width="80"
+                        Click="OnSaveClick"
+                        Background="#0078D4" Foreground="White" BorderBrush="#0078D4"
+                        Padding="0,5"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
