@@ -19,6 +19,7 @@ public partial class SettingsWindow : Window
         TxtProject.Text = current.ProjectName;
         TxtPat.Password = current.PatToken;
         TxtPollInterval.Text = current.PollIntervalSeconds.ToString();
+        TxtPipelineCount.Text = current.PipelineCount.ToString();
         ChkAutoStart.IsChecked = App.Current.GetAutoStart();
         ChkAlwaysOnTop.IsChecked = current.AlwaysOnTop;
     }
@@ -43,12 +44,20 @@ public partial class SettingsWindow : Window
             return;
         }
 
+        if (!int.TryParse(TxtPipelineCount.Text, out var pipelineCount) || pipelineCount < 1)
+        {
+            TxtError.Text = "Number of pipelines must be a number \u2265 1.";
+            TxtError.Visibility = Visibility.Visible;
+            return;
+        }
+
         var updated = new AppSettings
         {
             OrganizationUrl = TxtOrgUrl.Text.Trim(),
             ProjectName = TxtProject.Text.Trim(),
             PatToken = TxtPat.Password,
             PollIntervalSeconds = interval,
+            PipelineCount = pipelineCount,
             AlwaysOnTop = ChkAlwaysOnTop.IsChecked == true,
         };
 

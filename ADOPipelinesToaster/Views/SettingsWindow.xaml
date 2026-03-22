@@ -38,6 +38,12 @@
                      Background="#2D2D2D" Foreground="#EEEEEE"
                      BorderBrush="#555" CaretBrush="White"/>
 
+            <!-- Pipeline Count -->
+            <TextBlock Text="Number of pipelines to watch" Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,3"/>
+            <TextBox x:Name="TxtPipelineCount" Margin="0,0,0,10" Padding="6,4"
+                     Background="#2D2D2D" Foreground="#EEEEEE"
+                     BorderBrush="#555" CaretBrush="White"/>
+
             <!-- Auto-start -->
             <CheckBox x:Name="ChkAutoStart" Content="Start automatically with Windows"
                       Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,8"/>

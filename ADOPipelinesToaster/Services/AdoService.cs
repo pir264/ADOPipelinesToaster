@@ -47,7 +47,7 @@ public class AdoService
     public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
     {
         var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
-        var url = $"{BaseUrl}/build/builds?$top=50&api-version=7.1";
+        var url = $"{BaseUrl}/build/builds?$top={_settings.PipelineCount * 25}&api-version=7.1";
         if (!string.IsNullOrEmpty(uniqueName))
             url += $"&requestedFor={Uri.EscapeDataString(uniqueName)}";
         var response = await _http.GetAsync(url, ct);
@@ -62,7 +62,7 @@ public class AdoService
             .GroupBy(b => b!["definition"]?["id"]?.GetValue<int>() ?? 0)
             .Select(g => g.OrderByDescending(b => ParseDate(b?["startTime"])).First())
             .OrderByDescending(b => ParseDate(b?["startTime"]))
-            .Take(2);
+            .Take(_settings.PipelineCount);
 
         var runs = new List<PipelineRun>();
         foreach (var build in latestPerPipeline)
