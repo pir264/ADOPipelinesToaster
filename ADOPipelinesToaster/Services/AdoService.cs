@@ -28,10 +28,28 @@ public class AdoService
     }
 
     private string BaseUrl => $"{_settings.OrganizationUrl.TrimEnd('/')}/{_settings.ProjectName}/_apis";
+    private string OrgBaseUrl => _settings.OrganizationUrl.TrimEnd('/');
+
+    private string? _currentUserUniqueName;
+
+    private async Task<string?> GetCurrentUserUniqueNameAsync(CancellationToken ct)
+    {
+        if (_currentUserUniqueName != null) return _currentUserUniqueName;
+
+        var response = await _http.GetAsync($"{OrgBaseUrl}/_apis/connectionData", ct);
+        if (!response.IsSuccessStatusCode) return null;
+
+        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        _currentUserUniqueName = json?["authenticatedUser"]?["properties"]?["Account"]?["$value"]?.GetValue<string>();
+        return _currentUserUniqueName;
+    }
 
     public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
     {
+        var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
         var url = $"{BaseUrl}/build/builds?$top=10&api-version=7.1";
+        if (!string.IsNullOrEmpty(uniqueName))
+            url += $"&requestedFor={Uri.EscapeDataString(uniqueName)}";
         var response = await _http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
 
@@ -50,6 +68,7 @@ public class AdoService
                 Result = build["result"]?.GetValue<string>() ?? string.Empty,
                 StartTime = ParseDate(build["startTime"]),
                 FinishTime = ParseDate(build["finishTime"]),
+                WebUrl = build["_links"]?["web"]?["href"]?.GetValue<string>(),
             };
 
             // Annotate name with pipeline definition name

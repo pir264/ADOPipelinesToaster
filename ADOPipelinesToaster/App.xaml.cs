@@ -82,6 +82,7 @@ public partial class App : Application
         if (_popup == null || !_popup.IsLoaded)
         {
             _popup = new PipelinePopup();
+            _popup.Topmost = _settings.AlwaysOnTop;
             _popup.Show();
             _popup.PositionNearTray();
         }
@@ -92,6 +93,7 @@ public partial class App : Application
         }
         else
         {
+            _popup.Topmost = _settings.AlwaysOnTop;
             _popup.Show();
             _popup.PositionNearTray();
         }
@@ -163,6 +165,7 @@ public partial class App : Application
         _adoService = new AdoService(newSettings);
         LastError = null;
         LatestRuns = new List<PipelineRun>();
+        if (_popup != null) _popup.Topmost = newSettings.AlwaysOnTop;
         StartPolling();
     }
 

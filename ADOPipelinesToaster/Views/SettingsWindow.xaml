@@ -40,6 +40,10 @@
 
             <!-- Auto-start -->
             <CheckBox x:Name="ChkAutoStart" Content="Start automatically with Windows"
+                      Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,8"/>
+
+            <!-- Always on top -->
+            <CheckBox x:Name="ChkAlwaysOnTop" Content="Keep popup window always on top"
                       Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,16"/>
 
             <!-- Error message -->

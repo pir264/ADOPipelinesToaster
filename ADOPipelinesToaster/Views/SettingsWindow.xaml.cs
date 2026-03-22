@@ -20,6 +20,7 @@ public partial class SettingsWindow : Window
         TxtPat.Password = current.PatToken;
         TxtPollInterval.Text = current.PollIntervalSeconds.ToString();
         ChkAutoStart.IsChecked = App.Current.GetAutoStart();
+        ChkAlwaysOnTop.IsChecked = current.AlwaysOnTop;
     }
 
     private async void OnSaveClick(object sender, RoutedEventArgs e)
@@ -48,6 +49,7 @@ public partial class SettingsWindow : Window
             ProjectName = TxtProject.Text.Trim(),
             PatToken = TxtPat.Password,
             PollIntervalSeconds = interval,
+            AlwaysOnTop = ChkAlwaysOnTop.IsChecked == true,
         };
 
         await _settingsService.SaveAsync(updated);

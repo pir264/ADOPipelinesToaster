@@ -12,4 +12,5 @@ public class PipelineRun
     public DateTime? StartTime { get; set; }
     public DateTime? FinishTime { get; set; }
     public List<PipelineStage> Stages { get; set; } = new();
+    public string? WebUrl { get; set; }
 }
