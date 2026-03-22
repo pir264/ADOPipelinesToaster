@@ -68,18 +68,21 @@ public class AdoService
         foreach (var build in latestPerPipeline)
         {
             if (build == null) continue;
+            var definitionName = build["definition"]?["name"]?.GetValue<string>() ?? string.Empty;
             var run = new PipelineRun
             {
                 Id = build["id"]?.GetValue<int>() ?? 0,
+                DefinitionId = build["definition"]?["id"]?.GetValue<int>() ?? 0,
+                DefinitionName = definitionName,
                 Name = build["buildNumber"]?.GetValue<string>() ?? "Unknown",
                 Status = build["status"]?.GetValue<string>() ?? string.Empty,
                 Result = build["result"]?.GetValue<string>() ?? string.Empty,
                 StartTime = ParseDate(build["startTime"]),
                 FinishTime = ParseDate(build["finishTime"]),
                 WebUrl = build["_links"]?["web"]?["href"]?.GetValue<string>(),
+                RequestedFor = build["requestedFor"]?["displayName"]?.GetValue<string>(),
             };
 
-            var definitionName = build["definition"]?["name"]?.GetValue<string>();
             if (!string.IsNullOrEmpty(definitionName))
                 run.Name = $"{definitionName} #{run.Name}";
 
@@ -88,6 +91,38 @@ public class AdoService
         }
 
         return runs;
+    }
+
+    public async Task<PipelineRun?> GetNewerRunByOthersAsync(int definitionId, string definitionName, DateTime? afterTime, CancellationToken ct)
+    {
+        var currentUser = await GetCurrentUserUniqueNameAsync(ct);
+        var url = $"{BaseUrl}/build/builds?definitions={definitionId}&$top=10&api-version=7.1";
+        var response = await _http.GetAsync(url, ct);
+        if (!response.IsSuccessStatusCode) return null;
+
+        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
+        var builds = json?["value"]?.AsArray() ?? new JsonArray();
+
+        var newer = builds
+            .Where(b => b != null)
+            .Where(b => b!["requestedFor"]?["uniqueName"]?.GetValue<string>() != currentUser)
+            .Where(b => afterTime == null || ParseDate(b?["startTime"]) > afterTime)
+            .OrderByDescending(b => ParseDate(b?["startTime"]))
+            .FirstOrDefault();
+
+        if (newer == null) return null;
+
+        return new PipelineRun
+        {
+            Id = newer["id"]?.GetValue<int>() ?? 0,
+            DefinitionId = definitionId,
+            DefinitionName = definitionName,
+            Name = newer["buildNumber"]?.GetValue<string>() ?? "Unknown",
+            Status = newer["status"]?.GetValue<string>() ?? string.Empty,
+            Result = newer["result"]?.GetValue<string>() ?? string.Empty,
+            StartTime = ParseDate(newer["startTime"]),
+            RequestedFor = newer["requestedFor"]?["displayName"]?.GetValue<string>() ?? "Someone else",
+        };
     }
 
     public async Task<List<PipelineStage>> GetStagesAsync(int buildId, CancellationToken ct)

@@ -5,6 +5,7 @@
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
         <conv:ResultToColorConverter x:Key="ResultToColor"/>
+        <conv:ResultToLabelConverter x:Key="ResultToLabel"/>
         <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
         <conv:StringToVisibilityConverter x:Key="StringToVisibility"/>
     </Application.Resources>

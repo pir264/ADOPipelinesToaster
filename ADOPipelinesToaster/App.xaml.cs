@@ -23,6 +23,7 @@ public partial class App : Application
     private AppSettings _settings = new();
     private CancellationTokenSource _pollCts = new();
     private PipelinePopup? _popup;
+    private readonly HashSet<int> _notifiedRunIds = new();
 
     public List<PipelineRun> LatestRuns { get; private set; } = new();
     public string? LastError { get; private set; }
@@ -139,6 +140,8 @@ public partial class App : Application
             LastError = null;
             System.Diagnostics.Debug.WriteLine($"[Poll] Fetched {LatestRuns.Count} runs.");
 
+            await CheckForNewerRunsByOthersAsync(ct);
+
             Dispatcher.Invoke(() =>
             {
                 if (_popup?.IsVisible == true)
@@ -159,12 +162,53 @@ public partial class App : Application
         }
     }
 
+    private async Task CheckForNewerRunsByOthersAsync(CancellationToken ct)
+    {
+        if (_adoService == null || LatestRuns.Count == 0) return;
+
+        foreach (var myRun in LatestRuns)
+        {
+            if (myRun.DefinitionId == 0) continue;
+
+            var newerRun = await _adoService.GetNewerRunByOthersAsync(
+                myRun.DefinitionId, myRun.DefinitionName, myRun.StartTime, ct);
+
+            if (newerRun != null)
+            {
+                myRun.HasNewerRunByOther = true;
+                myRun.NewerRunBy = newerRun.RequestedFor;
+
+                if (!_notifiedRunIds.Contains(newerRun.Id))
+                {
+                    _notifiedRunIds.Add(newerRun.Id);
+                    var pipelineName = string.IsNullOrEmpty(myRun.DefinitionName) ? "pipeline" : myRun.DefinitionName;
+                    var who = newerRun.RequestedFor ?? "Someone else";
+                    System.Diagnostics.Debug.WriteLine($"[Poll] Newer run detected: {pipelineName} by {who}");
+
+                    Dispatcher.Invoke(() =>
+                    {
+                        _trayIcon?.ShowBalloonTip(
+                            "Pipeline started by someone else",
+                            $"{who} started a new run on {pipelineName}.",
+                            BalloonIcon.Info);
+                    });
+                }
+            }
+            else
+            {
+                myRun.HasNewerRunByOther = false;
+                myRun.NewerRunBy = null;
+            }
+        }
+    }
+
     public void ReinitializeAdoService(AppSettings newSettings)
     {
         _settings = newSettings;
         _adoService = new AdoService(newSettings);
         LastError = null;
         LatestRuns = new List<PipelineRun>();
+        _notifiedRunIds.Clear();
         if (_popup != null) _popup.Topmost = newSettings.AlwaysOnTop;
         StartPolling();
     }
