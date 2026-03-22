@@ -47,7 +47,7 @@ public class AdoService
     public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
     {
         var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
-        var url = $"{BaseUrl}/build/builds?$top=10&api-version=7.1";
+        var url = $"{BaseUrl}/build/builds?$top=50&api-version=7.1";
         if (!string.IsNullOrEmpty(uniqueName))
             url += $"&requestedFor={Uri.EscapeDataString(uniqueName)}";
         var response = await _http.GetAsync(url, ct);
@@ -56,8 +56,16 @@ public class AdoService
         var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
         var builds = json?["value"]?.AsArray() ?? new JsonArray();
 
+        // Pick the most recent run per pipeline definition, ordered by most recently started
+        var latestPerPipeline = builds
+            .Where(b => b != null)
+            .GroupBy(b => b!["definition"]?["id"]?.GetValue<int>() ?? 0)
+            .Select(g => g.OrderByDescending(b => ParseDate(b?["startTime"])).First())
+            .OrderByDescending(b => ParseDate(b?["startTime"]))
+            .Take(2);
+
         var runs = new List<PipelineRun>();
-        foreach (var build in builds.Take(2))
+        foreach (var build in latestPerPipeline)
         {
             if (build == null) continue;
             var run = new PipelineRun
@@ -71,7 +79,6 @@ public class AdoService
                 WebUrl = build["_links"]?["web"]?["href"]?.GetValue<string>(),
             };
 
-            // Annotate name with pipeline definition name
             var definitionName = build["definition"]?["name"]?.GetValue<string>();
             if (!string.IsNullOrEmpty(definitionName))
                 run.Name = $"{definitionName} #{run.Name}";

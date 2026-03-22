@@ -32,6 +32,7 @@ public partial class PipelinePopup : Window
     protected override void OnDeactivated(System.EventArgs e)
     {
         base.OnDeactivated(e);
-        Hide();
+        if (!Topmost)
+            Hide();
     }
 }
