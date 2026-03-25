@@ -67,9 +67,12 @@ public class AdoService
             .Where(b => b != null)
             .ToList();
 
+        var excludedIds = _settings.ExcludedPipelines.Select(e => e.Id).ToHashSet();
+
         // Pick the most recent run per pipeline definition, ordered by most recently started
         var latestPerPipeline = builds
             .GroupBy(b => b!["definition"]?["id"]?.GetValue<int>() ?? 0)
+            .Where(g => !excludedIds.Contains(g.Key))
             .Select(g => g.OrderByDescending(b => ParseDate(b?["startTime"])).First())
             .OrderByDescending(b => ParseDate(b?["startTime"]))
             .Take(_settings.PipelineCount);

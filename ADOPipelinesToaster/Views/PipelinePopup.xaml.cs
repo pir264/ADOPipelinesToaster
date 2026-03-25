@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Navigation;
+using ADOPipelinesToaster.Models;
 using ADOPipelinesToaster.ViewModels;
 
 namespace ADOPipelinesToaster.Views;
@@ -21,6 +23,12 @@ public partial class PipelinePopup : Window
         var screen = SystemParameters.WorkArea;
         Left = screen.Right - Width - 12;
         Top = screen.Bottom - ActualHeight - 12;
+    }
+
+    private async void OnExcludeClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: PipelineRun run })
+            await App.Current.ExcludePipelineAsync(run);
     }
 
     private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)

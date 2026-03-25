@@ -63,6 +63,12 @@
                                             ToolTip="{Binding NewerRunBy, StringFormat='⚠ Newer run started by {0}'}">
                                         <TextBlock Text="⚠ newer run" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
                                     </Border>
+                                    <Button DockPanel.Dock="Right" Content="✕"
+                                            ToolTip="Exclude this pipeline"
+                                            Click="OnExcludeClick"
+                                            Background="Transparent" Foreground="#666"
+                                            BorderThickness="0" Padding="4,0" FontSize="10"
+                                            Cursor="Hand" VerticalAlignment="Center"/>
                                     <Border Width="12" Height="12" CornerRadius="6" HorizontalAlignment="Right"
                                             Background="{Binding Result, Converter={StaticResource ResultToColor}}"
                                             ToolTip="{Binding Result}"

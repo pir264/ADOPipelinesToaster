@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace ADOPipelinesToaster.Models;
 
 public class AppSettings
@@ -8,4 +10,5 @@ public class AppSettings
     public int PollIntervalSeconds { get; set; } = 60;
     public int PipelineCount { get; set; } = 2;
     public bool AlwaysOnTop { get; set; } = true;
+    public List<ExcludedPipeline> ExcludedPipelines { get; set; } = [];
 }

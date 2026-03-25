@@ -44,6 +44,28 @@
                      Background="#2D2D2D" Foreground="#EEEEEE"
                      BorderBrush="#555" CaretBrush="White"/>
 
+            <!-- Excluded Pipelines -->
+            <TextBlock Text="Excluded Pipelines" Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,3"/>
+            <TextBlock Text="Pipelines excluded here won't appear in the popup. Use ✕ in the popup to add."
+                       Foreground="#666" FontSize="10" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            <Border Background="#2D2D2D" BorderBrush="#555" BorderThickness="1"
+                    CornerRadius="3" Padding="4" Margin="0,0,0,10" MinHeight="36">
+                <ItemsControl x:Name="LstExcluded">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel Margin="0,2">
+                                <Button Content="Remove" DockPanel.Dock="Right"
+                                        Click="OnRemoveExcluded"
+                                        Background="#3C3C3C" Foreground="#EEEEEE"
+                                        BorderBrush="#555" Padding="6,2" FontSize="10"/>
+                                <TextBlock Text="{Binding Name}" Foreground="#EEEEEE"
+                                           FontSize="11" VerticalAlignment="Center" Margin="4,0"/>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
             <!-- Auto-start -->
             <CheckBox x:Name="ChkAutoStart" Content="Start automatically with Windows"
                       Foreground="#AAAAAA" FontSize="11" Margin="0,0,0,8"/>

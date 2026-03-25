@@ -1,4 +1,6 @@
+using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using ADOPipelinesToaster.Models;
 using ADOPipelinesToaster.Services;
 
@@ -8,12 +10,14 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settingsService;
     private readonly AppSettings _current;
+    private readonly ObservableCollection<ExcludedPipeline> _excluded;
 
     public SettingsWindow(AppSettings current, SettingsService settingsService)
     {
         InitializeComponent();
         _current = current;
         _settingsService = settingsService;
+        _excluded = new ObservableCollection<ExcludedPipeline>(current.ExcludedPipelines);
 
         TxtOrgUrl.Text = current.OrganizationUrl;
         TxtProject.Text = current.ProjectName;
@@ -22,6 +26,7 @@ public partial class SettingsWindow : Window
         TxtPipelineCount.Text = current.PipelineCount.ToString();
         ChkAutoStart.IsChecked = App.Current.GetAutoStart();
         ChkAlwaysOnTop.IsChecked = current.AlwaysOnTop;
+        LstExcluded.ItemsSource = _excluded;
     }
 
     private async void OnSaveClick(object sender, RoutedEventArgs e)
@@ -59,6 +64,7 @@ public partial class SettingsWindow : Window
             PollIntervalSeconds = interval,
             PipelineCount = pipelineCount,
             AlwaysOnTop = ChkAlwaysOnTop.IsChecked == true,
+            ExcludedPipelines = [.. _excluded],
         };
 
         await _settingsService.SaveAsync(updated);
@@ -66,6 +72,12 @@ public partial class SettingsWindow : Window
         App.Current.ReinitializeAdoService(updated);
         DialogResult = true;
         Close();
+    }
+
+    private void OnRemoveExcluded(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { DataContext: ExcludedPipeline entry })
+            _excluded.Remove(entry);
     }
 
     private void OnCancelClick(object sender, RoutedEventArgs e)

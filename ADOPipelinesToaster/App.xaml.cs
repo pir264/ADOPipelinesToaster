@@ -202,6 +202,14 @@ public partial class App : Application
         }
     }
 
+    public async Task ExcludePipelineAsync(PipelineRun run)
+    {
+        if (_settings.ExcludedPipelines.Any(e => e.Id == run.DefinitionId)) return;
+        _settings.ExcludedPipelines.Add(new Models.ExcludedPipeline { Id = run.DefinitionId, Name = run.DefinitionName });
+        await _settingsService.SaveAsync(_settings);
+        await PollAsync(_pollCts.Token);
+    }
+
     public void ReinitializeAdoService(AppSettings newSettings)
     {
         _settings = newSettings;
