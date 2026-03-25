@@ -44,21 +44,31 @@ public class AdoService
         return _currentUserUniqueName;
     }
 
-    public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
+    private async Task<JsonArray> FetchBuildsAsync(string statusFilter, string? uniqueName, CancellationToken ct)
     {
-        var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
-        var url = $"{BaseUrl}/build/builds?$top={_settings.PipelineCount * 25}&statusFilter=all&api-version=7.1";
+        var url = $"{BaseUrl}/build/builds?$top={_settings.PipelineCount * 10}&statusFilter={statusFilter}&queryOrder=startTimeDescending&api-version=7.1";
         if (!string.IsNullOrEmpty(uniqueName))
             url += $"&requestedFor={Uri.EscapeDataString(uniqueName)}";
         var response = await _http.GetAsync(url, ct);
-        response.EnsureSuccessStatusCode();
-
+        if (!response.IsSuccessStatusCode) return [];
         var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
-        var builds = json?["value"]?.AsArray() ?? new JsonArray();
+        return json?["value"]?.AsArray() ?? [];
+    }
+
+    public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
+    {
+        var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
+
+        var inProgressTask = FetchBuildsAsync("inProgress", uniqueName, ct);
+        var completedTask = FetchBuildsAsync("completed", uniqueName, ct);
+        await Task.WhenAll(inProgressTask, completedTask);
+
+        var builds = inProgressTask.Result.Concat(completedTask.Result)
+            .Where(b => b != null)
+            .ToList();
 
         // Pick the most recent run per pipeline definition, ordered by most recently started
         var latestPerPipeline = builds
-            .Where(b => b != null)
             .GroupBy(b => b!["definition"]?["id"]?.GetValue<int>() ?? 0)
             .Select(g => g.OrderByDescending(b => ParseDate(b?["startTime"])).First())
             .OrderByDescending(b => ParseDate(b?["startTime"]))
