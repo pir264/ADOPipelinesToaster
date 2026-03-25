@@ -47,7 +47,7 @@ public class AdoService
     public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
     {
         var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
-        var url = $"{BaseUrl}/build/builds?$top={_settings.PipelineCount * 25}&api-version=7.1";
+        var url = $"{BaseUrl}/build/builds?$top={_settings.PipelineCount * 25}&statusFilter=all&api-version=7.1";
         if (!string.IsNullOrEmpty(uniqueName))
             url += $"&requestedFor={Uri.EscapeDataString(uniqueName)}";
         var response = await _http.GetAsync(url, ct);
