@@ -96,7 +96,7 @@ public class AdoService
             if (!string.IsNullOrEmpty(definitionName))
                 run.Name = $"{definitionName} #{run.Name}";
 
-            run.Stages = await GetStagesAsync(run.Id, ct);
+            run.Stages = await GetStagesAsync(run.Id, run.WebUrl, ct);
             runs.Add(run);
         }
 
@@ -135,25 +135,32 @@ public class AdoService
         };
     }
 
-    public async Task<List<PipelineStage>> GetStagesAsync(int buildId, CancellationToken ct)
+    public async Task<List<PipelineStage>> GetStagesAsync(int buildId, string? buildWebUrl, CancellationToken ct)
     {
         var url = $"{BaseUrl}/build/builds/{buildId}/timeline?api-version=7.1";
         var response = await _http.GetAsync(url, ct);
 
         if (!response.IsSuccessStatusCode)
-            return new List<PipelineStage>();
+            return [];
 
         var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
-        var records = json?["records"]?.AsArray() ?? new JsonArray();
+        var records = json?["records"]?.AsArray() ?? [];
 
         return records
             .Where(r => r?["type"]?.GetValue<string>() == "Stage")
             .OrderBy(r => r?["order"]?.GetValue<int>() ?? 0)
-            .Select(r => new PipelineStage
+            .Select(r =>
             {
-                Name = r?["name"]?.GetValue<string>() ?? "Unknown",
-                Status = r?["state"]?.GetValue<string>() ?? string.Empty,
-                Result = r?["result"]?.GetValue<string>() ?? string.Empty,
+                var stageId = r?["id"]?.GetValue<string>();
+                return new PipelineStage
+                {
+                    Name = r?["name"]?.GetValue<string>() ?? "Unknown",
+                    Status = r?["state"]?.GetValue<string>() ?? string.Empty,
+                    Result = r?["result"]?.GetValue<string>() ?? string.Empty,
+                    WebUrl = buildWebUrl != null && stageId != null
+                        ? $"{buildWebUrl}&view=logs&j={stageId}"
+                        : buildWebUrl,
+                };
             })
             .ToList();
     }
