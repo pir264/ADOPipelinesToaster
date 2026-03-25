@@ -19,5 +19,4 @@ public class PipelineRun
     public string? RequestedFor { get; set; }
     public bool HasNewerRunByOther { get; set; }
     public string? NewerRunBy { get; set; }
-    public bool AllStagesCompleted => Stages.Count > 0 && Stages.All(s => s.Status == "completed");
 }

@@ -46,33 +46,28 @@
                             <StackPanel>
                                 <!-- Run name + overall status -->
                                 <DockPanel>
+                                    <!-- Right-docked items must come before the filling element -->
+                                    <Button DockPanel.Dock="Right" Content="✕"
+                                            ToolTip="Exclude this pipeline"
+                                            Click="OnExcludeClick"
+                                            Background="Transparent" Foreground="#AAAAAA"
+                                            BorderThickness="0" Padding="4,0" FontSize="10"
+                                            Cursor="Hand" VerticalAlignment="Center"/>
+<TextBlock Text="⚠" Foreground="#FF8F00" FontSize="12"
+                                               DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2,0"
+                                               Visibility="{Binding HasNewerRunByOther, Converter={StaticResource BoolToVisibility}}"
+                                               ToolTip="{Binding NewerRunBy, StringFormat='Newer run started by {0}'}"/>
+                                    <Border DockPanel.Dock="Right" Width="12" Height="12" CornerRadius="6"
+                                            Background="{Binding Result, Converter={StaticResource ResultToColor}}"
+                                            ToolTip="{Binding Result}" Margin="2,0"
+                                            Visibility="{Binding Result, Converter={StaticResource StringToVisibility}}"/>
                                     <TextBlock FontSize="12" FontWeight="Medium"
-                                               DockPanel.Dock="Left" TextTrimming="CharacterEllipsis">
+                                               TextTrimming="CharacterEllipsis">
                                         <Hyperlink NavigateUri="{Binding WebUrl}" RequestNavigate="Hyperlink_RequestNavigate"
                                                    Foreground="#6CB6FF" TextDecorations="None">
                                             <Run Text="{Binding Name}"/>
                                         </Hyperlink>
                                     </TextBlock>
-                                    <TextBlock Text="✓" Foreground="#4CAF50" FontSize="13" FontWeight="Bold"
-                                               DockPanel.Dock="Right" VerticalAlignment="Center" Margin="6,0,4,0"
-                                               Visibility="{Binding AllStagesCompleted, Converter={StaticResource BoolToVisibility}}"
-                                               ToolTip="All stages completed"/>
-                                    <Border DockPanel.Dock="Right" CornerRadius="3" Padding="5,1" Margin="4,0,0,0"
-                                            Background="#E65100" VerticalAlignment="Center"
-                                            Visibility="{Binding HasNewerRunByOther, Converter={StaticResource BoolToVisibility}}"
-                                            ToolTip="{Binding NewerRunBy, StringFormat='⚠ Newer run started by {0}'}">
-                                        <TextBlock Text="⚠ newer run" Foreground="White" FontSize="10" FontWeight="SemiBold"/>
-                                    </Border>
-                                    <Button DockPanel.Dock="Right" Content="✕"
-                                            ToolTip="Exclude this pipeline"
-                                            Click="OnExcludeClick"
-                                            Background="Transparent" Foreground="#666"
-                                            BorderThickness="0" Padding="4,0" FontSize="10"
-                                            Cursor="Hand" VerticalAlignment="Center"/>
-                                    <Border Width="12" Height="12" CornerRadius="6" HorizontalAlignment="Right"
-                                            Background="{Binding Result, Converter={StaticResource ResultToColor}}"
-                                            ToolTip="{Binding Result}"
-                                            Visibility="{Binding Result, Converter={StaticResource StringToVisibility}}"/>
                                 </DockPanel>
 
                                 <!-- Stages -->
