@@ -5,9 +5,10 @@
         Width="420" MinHeight="100" MaxHeight="600"
         SizeToContent="Height"
         ResizeMode="CanResizeWithGrip"
-        WindowStyle="ToolWindow"
-        ShowInTaskbar="False"
-        WindowStartupLocation="Manual">
+        WindowStyle="SingleBorderWindow"
+        ShowInTaskbar="True"
+        WindowStartupLocation="Manual"
+        Closing="OnWindowClosing">
 
     <Window.Resources>
         <!-- Status color converter via style triggers -->

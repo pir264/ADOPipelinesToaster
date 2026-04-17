@@ -37,10 +37,9 @@ public partial class PipelinePopup : Window
         e.Handled = true;
     }
 
-    protected override void OnDeactivated(System.EventArgs e)
+    private void OnWindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {
-        base.OnDeactivated(e);
-        if (!Topmost)
-            Hide();
+        e.Cancel = true;
+        Hide();
     }
 }
