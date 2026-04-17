@@ -24,6 +24,7 @@ public partial class App : Application
     private CancellationTokenSource _pollCts = new();
     private PipelinePopup? _popup;
     private readonly HashSet<int> _notifiedRunIds = new();
+    private bool _isFirstPoll = true;
 
     public List<PipelineRun> LatestRuns { get; private set; } = new();
     public string? LastError { get; private set; }
@@ -141,6 +142,7 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine($"[Poll] Fetched {LatestRuns.Count} runs.");
 
             await CheckForNewerRunsByOthersAsync(ct);
+            _isFirstPoll = false;
 
             Dispatcher.Invoke(() =>
             {
@@ -181,17 +183,20 @@ public partial class App : Application
                 if (!_notifiedRunIds.Contains(newerRun.Id))
                 {
                     _notifiedRunIds.Add(newerRun.Id);
-                    var pipelineName = string.IsNullOrEmpty(myRun.DefinitionName) ? "pipeline" : myRun.DefinitionName;
-                    var who = newerRun.RequestedFor ?? "Someone else";
-                    System.Diagnostics.Debug.WriteLine($"[Poll] Newer run detected: {pipelineName} by {who}");
-
-                    Dispatcher.Invoke(() =>
+                    if (!_isFirstPoll)
                     {
-                        _trayIcon?.ShowBalloonTip(
-                            "Pipeline started by someone else",
-                            $"{who} started a new run on {pipelineName}.",
-                            BalloonIcon.Info);
-                    });
+                        var pipelineName = string.IsNullOrEmpty(myRun.DefinitionName) ? "pipeline" : myRun.DefinitionName;
+                        var who = newerRun.RequestedFor ?? "Someone else";
+                        System.Diagnostics.Debug.WriteLine($"[Poll] Newer run detected: {pipelineName} by {who}");
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            _trayIcon?.ShowBalloonTip(
+                                "Pipeline started by someone else",
+                                $"{who} started a new run on {pipelineName}.",
+                                BalloonIcon.Info);
+                        });
+                    }
                 }
             }
             else
@@ -217,6 +222,7 @@ public partial class App : Application
         LastError = null;
         LatestRuns = new List<PipelineRun>();
         _notifiedRunIds.Clear();
+        _isFirstPoll = true;
         if (_popup != null) _popup.Topmost = newSettings.AlwaysOnTop;
         StartPolling();
     }
