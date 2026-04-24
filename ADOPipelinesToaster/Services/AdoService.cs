@@ -36,12 +36,39 @@ public class AdoService
     {
         if (_currentUserUniqueName != null) return _currentUserUniqueName;
 
-        var response = await _http.GetAsync($"{OrgBaseUrl}/_apis/connectionData", ct);
-        if (!response.IsSuccessStatusCode) return null;
+        try
+        {
+            var response = await _http.GetAsync($"{OrgBaseUrl}/_apis/connectionData", ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AdoService] Failed to get user identity: {response.StatusCode}");
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    throw new UnauthorizedAccessException("Personal Access Token has expired or is invalid. Please update your PAT in Settings.");
+                }
+                
+                return null;
+            }
 
-        var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
-        _currentUserUniqueName = json?["authenticatedUser"]?["properties"]?["Account"]?["$value"]?.GetValue<string>();
-        return _currentUserUniqueName;
+            var jsonText = await response.Content.ReadAsStringAsync(ct);
+            System.Diagnostics.Debug.WriteLine($"[AdoService] ConnectionData response: {jsonText}");
+            
+            var json = JsonNode.Parse(jsonText);
+            _currentUserUniqueName = json?["authenticatedUser"]?["properties"]?["Account"]?["$value"]?.GetValue<string>();
+            
+            System.Diagnostics.Debug.WriteLine($"[AdoService] Extracted user: '{_currentUserUniqueName}'");
+            return _currentUserUniqueName;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            throw; // Re-throw to propagate to caller
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[AdoService] Error getting user: {ex.Message}");
+            return null;
+        }
     }
 
     private async Task<JsonArray> FetchBuildsAsync(string statusFilter, string? uniqueName, CancellationToken ct)
@@ -50,14 +77,27 @@ public class AdoService
         if (!string.IsNullOrEmpty(uniqueName))
             url += $"&requestedFor={Uri.EscapeDataString(uniqueName)}";
         var response = await _http.GetAsync(url, ct);
-        if (!response.IsSuccessStatusCode) return [];
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException("Personal Access Token has expired or is invalid. Please update your PAT in Settings.");
+            }
+            return [];
+        }
+        
         var json = JsonNode.Parse(await response.Content.ReadAsStringAsync(ct));
         return json?["value"]?.AsArray() ?? [];
     }
 
     public async Task<List<PipelineRun>> GetRecentRunsAsync(CancellationToken ct)
     {
+        var logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ADOPipelinesToaster", "debug.log");
+        
         var uniqueName = await GetCurrentUserUniqueNameAsync(ct);
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] User: {uniqueName}\n");
+        System.Diagnostics.Debug.WriteLine($"[AdoService] User: {uniqueName}");
 
         var inProgressTask = FetchBuildsAsync("inProgress", uniqueName, ct);
         var completedTask = FetchBuildsAsync("completed", uniqueName, ct);
@@ -67,7 +107,12 @@ public class AdoService
             .Where(b => b != null)
             .ToList();
 
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Fetched {builds.Count} total builds (inProgress: {inProgressTask.Result.Count}, completed: {completedTask.Result.Count})\n");
+        System.Diagnostics.Debug.WriteLine($"[AdoService] Fetched {builds.Count} total builds (inProgress: {inProgressTask.Result.Count}, completed: {completedTask.Result.Count})");
+
         var excludedIds = _settings.ExcludedPipelines.Select(e => e.Id).ToHashSet();
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Excluded pipeline IDs: {string.Join(", ", excludedIds)}\n");
+        System.Diagnostics.Debug.WriteLine($"[AdoService] Excluded pipeline IDs: {string.Join(", ", excludedIds)}");
 
         // Pick the most recent run per pipeline definition, ordered by most recently started
         var latestPerPipeline = builds
@@ -75,7 +120,11 @@ public class AdoService
             .Where(g => !excludedIds.Contains(g.Key))
             .Select(g => g.OrderByDescending(b => ParseDate(b?["startTime"])).First())
             .OrderByDescending(b => ParseDate(b?["startTime"]))
-            .Take(_settings.PipelineCount);
+            .Take(_settings.PipelineCount)
+            .ToList();
+
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] After filtering: {latestPerPipeline.Count} pipelines\n");
+        System.Diagnostics.Debug.WriteLine($"[AdoService] After filtering: {latestPerPipeline.Count} pipelines");
 
         var runs = new List<PipelineRun>();
         foreach (var build in latestPerPipeline)
@@ -101,8 +150,12 @@ public class AdoService
 
             run.Stages = await GetStagesAsync(run.Id, run.WebUrl, ct);
             runs.Add(run);
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Added run: {run.Name} (Definition ID: {run.DefinitionId})\n");
+            System.Diagnostics.Debug.WriteLine($"[AdoService] Added run: {run.Name} (Definition ID: {run.DefinitionId})");
         }
 
+        System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Returning {runs.Count} runs\n");
+        System.Diagnostics.Debug.WriteLine($"[AdoService] Returning {runs.Count} runs");
         return runs;
     }
 

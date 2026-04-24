@@ -139,6 +139,8 @@ public partial class App : Application
         {
             LatestRuns = await _adoService.GetRecentRunsAsync(ct);
             LastError = null;
+            var logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ADOPipelinesToaster", "debug.log");
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Fetched {LatestRuns.Count} runs\n");
             System.Diagnostics.Debug.WriteLine($"[Poll] Fetched {LatestRuns.Count} runs.");
 
             await CheckForNewerRunsByOthersAsync(ct);
@@ -151,9 +153,29 @@ public partial class App : Application
             });
         }
         catch (OperationCanceledException) { }
+        catch (UnauthorizedAccessException ex)
+        {
+            LastError = ex.Message;
+            var logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ADOPipelinesToaster", "debug.log");
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Auth Error: {ex.Message}\n");
+            System.Diagnostics.Debug.WriteLine($"[Poll] Auth Error: {ex.Message}");
+
+            Dispatcher.Invoke(() =>
+            {
+                if (_popup?.IsVisible == true)
+                    _popup.ViewModel.UpdateRuns(LatestRuns, LastError);
+                
+                _trayIcon?.ShowBalloonTip(
+                    "PAT Expired",
+                    "Your Personal Access Token has expired. Please update it in Settings.",
+                    BalloonIcon.Error);
+            });
+        }
         catch (Exception ex)
         {
             LastError = ex.Message;
+            var logPath = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ADOPipelinesToaster", "debug.log");
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Error: {ex.Message}\n");
             System.Diagnostics.Debug.WriteLine($"[Poll] Error: {ex.Message}");
 
             Dispatcher.Invoke(() =>
